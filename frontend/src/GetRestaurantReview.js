@@ -1,15 +1,24 @@
 import React, { useState, useEffect } from "react";
 
 function GetRestaurantReview() {
-  const [searchQuery, setSearchQuery] = useState(""); // User input
-  const [suggestions, setSuggestions] = useState([]); // Autocomplete suggestions
-  const [selectedPlaceId, setSelectedPlaceId] = useState(null); // Selected place ID
-  const [restaurantData, setRestaurantData] = useState(null); // Fetched restaurant data
-  const [errorMessage, setErrorMessage] = useState(""); // Error handling
-  const [userLocation, setUserLocation] = useState(null); // User's geolocation
-  const [isAnalyzingMore, setIsAnalyzingMore] = useState(false); // State for "Analyze More" button
+  const [searchQuery, setSearchQuery] = useState(""); 
+  const [suggestions, setSuggestions] = useState([]); 
+  const [selectedPlaceId, setSelectedPlaceId] = useState(null); 
+  const [restaurantData, setRestaurantData] = useState(null); 
+  const [errorMessage, setErrorMessage] = useState(""); 
+  const [userLocation, setUserLocation] = useState(null); 
+  const [isAnalyzingMore, setIsAnalyzingMore] = useState(false); 
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  // Fetch user's location on page load
+  function addRecentSearch(restaurantName) {
+    const saved = JSON.parse(localStorage.getItem('recentSearches')) || [];
+    const updated = [restaurantName, ...saved.filter(r => r !== restaurantName)];
+    const limited = updated.slice(0, 3);
+    localStorage.setItem('recentSearches', JSON.stringify(limited));
+    setRecentSearches(limited);
+  }
+
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -21,18 +30,21 @@ function GetRestaurantReview() {
         },
         () => {
           setErrorMessage("Unable to access your location. Using default location.");
-          setUserLocation({ lat: 36.1627, lng: -86.7816 }); // Default: Nashville
+          setUserLocation({ lat: 36.1627, lng: -86.7816 }); 
         }
       );
     } else {
       setErrorMessage("Geolocation is not supported by your browser.");
     }
+
+    const saved = JSON.parse(localStorage.getItem('recentSearches')) || [];
+    setRecentSearches(saved);
   }, []);
 
-  // Fetch autocomplete suggestions
   const handleInputChange = async (e) => {
     const input = e.target.value;
     setSearchQuery(input);
+    setShowDropdown(true);
 
     if (input.trim() === "") {
       setSuggestions([]);
@@ -50,16 +62,13 @@ function GetRestaurantReview() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          input,
-          location: userLocation,
-        }),
+        body: JSON.stringify({ input, location: userLocation }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setSuggestions(data.suggestions || []); // Show autocomplete suggestions
+        setSuggestions(data.suggestions || []);
       } else {
         setSuggestions([]);
       }
@@ -69,28 +78,26 @@ function GetRestaurantReview() {
     }
   };
 
-  // Handle suggestion click
   const handleSuggestionClick = async (description, place_id) => {
-    setSearchQuery(description); // Set search query to selected description
-    setSuggestions([]); // Clear suggestions
-    setSelectedPlaceId(place_id); // Save the selected place ID
+    setSearchQuery(description);
+    setSuggestions([]);
+    setSelectedPlaceId(place_id);
+    addRecentSearch(description);
+    setShowDropdown(false);
 
-    // Fetch place details using the selected place_id
     try {
       const response = await fetch("http://localhost:2000/getRestaurant", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ restaurant: place_id }), // Send place_id
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurant: place_id }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setRestaurantData(data.results); // Show restaurant details
-        setErrorMessage(""); // Clear errors
-        setIsAnalyzingMore(false); // Reset "Analyze More" state
+        setRestaurantData(data.results);
+        setErrorMessage("");
+        setIsAnalyzingMore(false);
       } else {
         setRestaurantData(null);
         setErrorMessage(data.message || "Error fetching details.");
@@ -101,22 +108,19 @@ function GetRestaurantReview() {
     }
   };
 
-  // Handle "Analyze More" button
   const handleAnalyzeMore = async () => {
     if (!restaurantData || !restaurantData.reviews) {
       setErrorMessage("No reviews available to analyze.");
       return;
     }
 
-    setIsAnalyzingMore(true); // Show loading state
+    setIsAnalyzingMore(true);
 
     try {
       const response = await fetch("http://localhost:2000/analyze-more", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ reviews: restaurantData.reviews }), // Send reviews to backend
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews: restaurantData.reviews }),
       });
 
       const data = await response.json();
@@ -124,7 +128,7 @@ function GetRestaurantReview() {
       if (response.ok) {
         setRestaurantData((prev) => ({
           ...prev,
-          summary: data.detailedSummary, // Update the summary with the detailed response
+          summary: data.detailedSummary,
         }));
         setErrorMessage("");
       } else {
@@ -134,7 +138,7 @@ function GetRestaurantReview() {
       console.error("Error analyzing more:", error);
       setErrorMessage("Unable to analyze more. Please try again.");
     } finally {
-      setIsAnalyzingMore(false); // Reset loading state
+      setIsAnalyzingMore(false);
     }
   };
 
@@ -149,16 +153,29 @@ function GetRestaurantReview() {
           placeholder="Search for a restaurant..."
           className="search-input"
         />
-        {suggestions.length > 0 && (
+        {showDropdown && searchQuery.trim() !== "" && (recentSearches.length > 0 || suggestions.length > 0) && (
           <ul className="suggestions">
+            {recentSearches.map((item, index) => (
+              <li
+                key={"recent-" + index}
+                className="suggestion-item"
+                onClick={() => {
+                  setSearchQuery(item);
+                  setSuggestions([]);
+                  addRecentSearch(item);
+                  setSelectedPlaceId(null);
+                  setShowDropdown(false);
+                }}
+              >
+                {item} (Recent)
+              </li>
+            ))}
+
             {suggestions.map((suggestion, index) => (
               <li
                 key={index}
                 onClick={() =>
-                  handleSuggestionClick(
-                    suggestion.description,
-                    suggestion.place_id
-                  )
+                  handleSuggestionClick(suggestion.description, suggestion.place_id)
                 }
                 className="suggestion-item"
               >
@@ -187,7 +204,6 @@ function GetRestaurantReview() {
             {isAnalyzingMore ? "Analyzing..." : "Analyze More"}
           </button>
 
-          {/* Display Photos */}
           {restaurantData.photos && restaurantData.photos.length > 0 && (
             <div className="photos-container">
               {restaurantData.photos.map((photo, index) => (
