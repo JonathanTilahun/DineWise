@@ -1,0 +1,15 @@
+{
+  "url": "http://localhost",
+  "api_version": "/v1",
+  "mongodb": "mongodb+srv://jonathanmtilahun:cyvRual7ZmDjA0Qy@cluster0.kokdk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
+  "port": 8080,
+  "environments": {
+    "test": {
+      "mongodb": "mongodb+srv://jonathanmtilahun:cyvRual7ZmDjA0Qy@cluster0.kokdk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
+      "port": 8081
+    },
+    "ci": {
+      "mongodb": "mongodb+srv://jonathanmtilahun:cyvRual7ZmDjA0Qy@cluster0.kokdk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    }
+  }
+}
