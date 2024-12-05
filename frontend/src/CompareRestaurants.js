@@ -12,6 +12,22 @@ function CompareRestaurants() {
   const [photos2, setPhotos2] = useState([]); // Photos for second restaurant
   const [errorMessage, setErrorMessage] = useState(""); // Error handling
   const [userLocation, setUserLocation] = useState(null); // User's geolocation
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [showDropdown1, setShowDropdown1] = useState(false);
+  const [showDropdown2, setShowDropdown2] = useState(false);
+
+
+  function addRecentSearch(restaurantName) {
+    const saved = JSON.parse(localStorage.getItem('recentSearches')) || [];
+    // Put this search at the front and remove duplicates
+    const updated = [restaurantName, ...saved.filter(r => r !== restaurantName)];
+    // Limit to last 3 items
+    const limited = updated.slice(0, 3);
+    localStorage.setItem('recentSearches', JSON.stringify(limited));
+    setRecentSearches(limited);
+  }
+
+
 
   // Fetch user's location on page load
   useEffect(() => {
@@ -33,6 +49,9 @@ function CompareRestaurants() {
       console.error("Geolocation not supported by this browser.");
       setErrorMessage("Geolocation is not supported by your browser.");
     }
+
+    const saved = JSON.parse(localStorage.getItem('recentSearches')) || [];
+    setRecentSearches(saved);
   }, []);
 
   // Fetch autocomplete suggestions for a search bar
@@ -140,88 +159,101 @@ function CompareRestaurants() {
       <div style={{ marginBottom: "20px", display: "flex", flexDirection: "column", gap: "20px", alignItems: "center" }}>
         <div style={{ position: "relative", width: "300px" }}>
           <input
-            type="text"
-            value={searchQuery1}
-            onChange={(e) => {
-              setSearchQuery1(e.target.value);
-              fetchSuggestions(e.target.value, setSuggestions1);
-            }}
-            placeholder="Search for the first restaurant..."
-            style={{ padding: "10px", width: "100%" }}
-          />
-          {suggestions1.length > 0 && (
-            <ul
-              style={{
-                position: "absolute",
-                top: "40px",
-                left: "0",
-                border: "1px solid #ccc",
-                width: "100%",
-                marginTop: "5px",
-                padding: "10px",
-                listStyle: "none",
-                backgroundColor: "#fff",
-                zIndex: 1000,
-              }}
-            >
-              {suggestions1.map((suggestion, index) => (
-                <li
-                  key={index}
-                  onClick={() => {
-                    setSearchQuery1(suggestion.description);
-                    setSuggestions1([]);
-                    setSelectedPlaceId1(suggestion.place_id);
-                  }}
-                  style={{ cursor: "pointer", marginBottom: "5px" }}
-                >
-                  {suggestion.description}
-                </li>
-              ))}
-            </ul>
-          )}
+  type="text"
+  value={searchQuery1}
+  onChange={(e) => {
+    setSearchQuery1(e.target.value);
+    fetchSuggestions(e.target.value, setSuggestions1);
+    setShowDropdown1(true); // show dropdown when typing
+  }}
+  placeholder="Search for the first restaurant..."
+  style={{ padding: "10px", width: "100%" }}
+/>
+{showDropdown1 && searchQuery1.trim() !== "" && (recentSearches.length > 0 || suggestions1.length > 0) && (
+  <ul className="suggestions">
+    {recentSearches.map((item, index) => (
+      <li
+        key={"recent1-" + index}
+        className="suggestion-item"
+        onClick={() => {
+          setSearchQuery1(item);
+          setSuggestions1([]);
+          addRecentSearch(item);
+          setShowDropdown1(false); // close after selection
+        }}
+      >
+        {item} (Recent)
+      </li>
+    ))}
+
+    {suggestions1.map((suggestion, index) => (
+      <li
+        key={index}
+        className="suggestion-item"
+        onClick={() => {
+          setSearchQuery1(suggestion.description);
+          setSuggestions1([]);
+          setSelectedPlaceId1(suggestion.place_id);
+          addRecentSearch(suggestion.description);
+          setShowDropdown1(false); // close after selection
+        }}
+      >
+        {suggestion.description}
+      </li>
+    ))}
+  </ul>
+)}
         </div>
 
         <div style={{ position: "relative", width: "300px" }}>
-          <input
-            type="text"
-            value={searchQuery2}
-            onChange={(e) => {
-              setSearchQuery2(e.target.value);
-              fetchSuggestions(e.target.value, setSuggestions2);
-            }}
-            placeholder="Search for the second restaurant..."
-            style={{ padding: "10px", width: "100%" }}
-          />
-          {suggestions2.length > 0 && (
-            <ul
-              style={{
-                position: "absolute",
-                top: "40px",
-                left: "0",
-                border: "1px solid #ccc",
-                width: "100%",
-                marginTop: "5px",
-                padding: "10px",
-                listStyle: "none",
-                backgroundColor: "#fff",
-                zIndex: 1000,
-              }}
-            >
-              {suggestions2.map((suggestion, index) => (
-                <li
-                  key={index}
-                  onClick={() => {
-                    setSearchQuery2(suggestion.description);
-                    setSuggestions2([]);
-                    setSelectedPlaceId2(suggestion.place_id);
-                  }}
-                  style={{ cursor: "pointer", marginBottom: "5px" }}
-                >
-                  {suggestion.description}
-                </li>
-              ))}
-            </ul>
-          )}
+        <input
+  type="text"
+  value={searchQuery2}
+  onChange={(e) => {
+    setSearchQuery2(e.target.value);
+    fetchSuggestions(e.target.value, setSuggestions2);
+    setShowDropdown2(true); // show dropdown when typing
+  }}
+  placeholder="Search for the second restaurant..."
+  style={{ padding: "10px", width: "100%" }}
+/>
+{showDropdown2 && searchQuery2.trim() !== "" && (recentSearches.length > 0 || suggestions2.length > 0) && (
+  <ul className="suggestions">
+    {recentSearches.map((item, index) => (
+      <li
+        key={"recent2-" + index}
+        className="suggestion-item"
+        onClick={() => {
+          setSearchQuery2(item);
+          setSuggestions2([]);
+          addRecentSearch(item);
+          setShowDropdown2(false); // close after selection
+        }}
+      >
+        {item} (Recent)
+      </li>
+    ))}
+
+    {suggestions2.map((suggestion, index) => (
+      <li
+        key={index}
+        className="suggestion-item"
+        onClick={() => {
+          setSearchQuery2(suggestion.description);
+          setSuggestions2([]);
+          setSelectedPlaceId2(suggestion.place_id);
+          addRecentSearch(suggestion.description);
+          setShowDropdown2(false); // close after selection
+        }}
+      >
+        {suggestion.description}
+      </li>
+    ))}
+  </ul>
+)}
+
+
+
         </div>
       </div>
 
@@ -255,10 +287,13 @@ function CompareRestaurants() {
   style={{
     marginTop: "40px",
     display: "flex",
+    flexWrap: "wrap", // Add this to allow wrapping
     justifyContent: "center",
     alignItems: "flex-start",
-    gap: "40px", // Add spacing between the two sections
+    gap: "40px",
     textAlign: "center",
+    maxWidth: "100%", // Ensures the container doesn't exceed screen width
+    margin: "0 auto",
   }}
 >
   {/* First Restaurant Photos */}

@@ -21,7 +21,7 @@ function App() {
 function HomePage() {
   return (
     <div className="home-page">
-      <h1>DineWise</h1>
+      <h1>DineWise! 🍽️</h1>
       <div className="button-container">
         <Link to="/get-restaurant-review">
           <button>Get a Restaurant Review</button>
