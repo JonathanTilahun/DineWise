@@ -1,0 +1,227 @@
+/* App.css */
+
+/* General Body Styling */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  color: #f0f0f0; /* Light gray text for contrast */
+}
+
+/* Animated gradient background */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    -45deg,
+    #1e3c72,
+    #2a5298,
+    #4b134f,
+    #1c1c1c
+  );
+  background-size: 400% 400%;
+  animation: gradientAnimation 15s ease infinite;
+  z-index: -2; /* Lower z-index to place behind shapes */
+}
+
+/* Keyframes for the gradient animation */
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Moving shapes */
+.shape-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -1; /* Ensure shapes are above the background but below content */
+}
+
+.shape {
+  position: absolute;
+  bottom: -150px; /* Start from below the viewport */
+  background-color: rgba(255, 255, 255, 0.1);
+  opacity: 0.5;
+  border-radius: 50%;
+  animation: moveUp 25s linear infinite;
+}
+
+.shape.small {
+  width: 40px;
+  height: 40px;
+  left: 20%;
+  animation-duration: 20s;
+  animation-delay: 0s;
+}
+
+.shape.medium {
+  width: 60px;
+  height: 60px;
+  left: 50%;
+  animation-duration: 25s;
+  animation-delay: 5s;
+}
+
+.shape.large {
+  width: 80px;
+  height: 80px;
+  left: 80%;
+  animation-duration: 30s;
+  animation-delay: 10s;
+}
+
+/* Keyframes for moving shapes upward */
+@keyframes moveUp {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-110vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Container styles */
+.container {
+  text-align: center;
+  width: 90%;
+  max-width: 600px;
+  position: relative; /* Ensure it sits above the shapes */
+  z-index: 1;
+  margin: 0 auto; /* Center the container */
+  padding: 20px; /* Add padding if needed */
+}
+
+/* Heading styles */
+h1 {
+  font-size: 3rem;
+  margin-bottom: 40px;
+  color: #f0f0f0;
+  text-shadow: 2px 2px 6px #000000;
+}
+
+/* Button styles */
+button {
+  padding: 15px 30px;
+  font-size: 18px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f0f0f0;
+  border: 1px solid #f0f0f0;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 10px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+button:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+/* Input styles */
+input {
+  padding: 10px;
+  width: calc(100% - 22px);
+  margin-bottom: 10px;
+  border-radius: 5px;
+  border: 1px solid #555;
+  font-size: 16px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f0f0f0;
+}
+
+/* Search container */
+.search-container {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Suggestions list */
+.suggestions {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background-color: #333;
+  color: #f0f0f0;
+  border: 1px solid #555;
+  border-radius: 5px;
+  position: absolute;
+  top: 45px;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.suggestion-item:hover {
+  background-color: #444;
+}
+
+/* Error message */
+.error {
+  color: #ff4c4c;
+}
+
+/* Result container */
+.result-container {
+  margin-top: 20px;
+}
+
+/* Photos container */
+.photos-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  overflow-x: auto;
+}
+
+.restaurant-photo {
+  width: 150px;
+  height: auto;
+  border-radius: 5px;
+  border: 1px solid #555;
+}
+
+/* Home page styles */
+.home-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: transparent;
+}
+
+.home-page h1 {
+  margin-top: 80px;
+}
+
+/* Button container */
+.button-container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
