@@ -10,6 +10,7 @@ function GetRestaurantReview() {
   const [isAnalyzingMore, setIsAnalyzingMore] = useState(false); 
   const [recentSearches, setRecentSearches] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [loading, setLoading] = useState(false)
 
   function addRecentSearch(restaurantName) {
     const saved = JSON.parse(localStorage.getItem('recentSearches')) || [];
@@ -62,7 +63,11 @@ function GetRestaurantReview() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ input, location: userLocation }),
+        body: JSON.stringify({
+          input,
+          location: userLocation,
+          types: "bakery|bar|cafe|restaurant|store"
+        }),
       });
 
       const data = await response.json();
@@ -84,6 +89,7 @@ function GetRestaurantReview() {
     setSelectedPlaceId(place_id);
     addRecentSearch(description);
     setShowDropdown(false);
+    setLoading(true)
 
     try {
       const response = await fetch("http://localhost:2000/getRestaurant", {
@@ -93,7 +99,7 @@ function GetRestaurantReview() {
       });
 
       const data = await response.json();
-
+      setLoading(false)
       if (response.ok) {
         setRestaurantData(data.results);
         setErrorMessage("");
@@ -188,7 +194,13 @@ function GetRestaurantReview() {
 
       {errorMessage && <p className="error">{errorMessage}</p>}
 
-      {restaurantData && (
+      {loading && (
+        <div className="loading-indicator">
+          <div className="spinner"></div>
+        </div>
+      )}
+
+      {!loading && restaurantData && (
         <div className="result-container">
           <h2>{restaurantData.name}</h2>
           <p>Address: {restaurantData.address}</p>
@@ -218,7 +230,7 @@ function GetRestaurantReview() {
           )}
         </div>
       )}
-      {!errorMessage && !restaurantData && (
+      {!loading && !errorMessage && !restaurantData && (
         <p className="instructions">Enter a search above to see details!</p>
       )}
     </div>

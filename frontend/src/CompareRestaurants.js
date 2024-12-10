@@ -75,6 +75,7 @@ function CompareRestaurants() {
         body: JSON.stringify({
           input,
           location: userLocation,
+          types: "bakery|bar|cafe|restaurant|store"
         }),
       });
 

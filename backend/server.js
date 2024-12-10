@@ -2,6 +2,7 @@ const express = require('express');
 const fetch = require('node-fetch');
 const cors = require('cors');
 const { OpenAI } = require('openai');
+const { getRestaurantDetails } = require('./GetRestaurantDetails');
 const app = express();
 const PORT = 2000;
 require('dotenv').config();
@@ -21,85 +22,27 @@ app.use(express.json());
 app.post('/getRestaurant', async (req, res) => {
     const { restaurant } = req.body;
 
-    if (!restaurant) {
-        return res.status(400).json({ message: 'Invalid restaurant data' });
-    }
-
-    const isPlaceId = restaurant.startsWith("ChIJ");
-
-    let apiUrl;
-    if (isPlaceId) {
-        apiUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(
-            restaurant
-        )}&fields=name,formatted_address,rating,user_ratings_total,reviews,photos&key=${GOOGLE_API_KEY}`;
-    } else {
-        apiUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(
-            restaurant
-        )}&key=${GOOGLE_API_KEY}`;
-    }
-
     try {
-        const response = await fetch(apiUrl);
-        const data = await response.json();
+        const details = await getRestaurantDetails(restaurant); // Handles placeId validation internally
+        const summary = await summarizeReviews(details.reviews);
 
-        if (data.status === "OK") {
-            if (isPlaceId && data.result) {
-                const place = data.result;
-                const reviews = place.reviews
-                    ? place.reviews.slice(0, 10).map((review) => ({
-                          author: review.author_name,
-                          text: review.text,
-                          rating: review.rating,
-                      }))
-                    : [];
-
-                // Get photos from Google API
-                const photos = place.photos
-                    ? place.photos.slice(0, 5).map((photo) => ({
-                          url: `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${GOOGLE_API_KEY}`,
-                      }))
-                    : [];
-
-                const summary = await summarizeReviews(reviews);
-
-                res.json({
-                    message: "Success",
-                    results: {
-                        name: place.name,
-                        address: place.formatted_address,
-                        rating: place.rating || "No rating available",
-                        reviewsCount: place.user_ratings_total || "No reviews",
-                        reviews,
-                        summary,
-                        photos, // Include photos in the response
-                    },
-                });
-            } else if (data.results && data.results.length > 0) {
-                const place = data.results[0];
-                res.json({
-                    message: "Success",
-                    results: {
-                        name: place.name,
-                        address: place.formatted_address,
-                        rating: place.rating || "No rating available",
-                        reviewsCount: place.user_ratings_total || "No reviews",
-                        reviews: [],
-                        summary: "No reviews available to summarize",
-                        photos: [], // Text Search API may not return photos
-                    },
-                });
-            } else {
-                res.status(404).json({ message: "Restaurant not found" });
-            }
-        } else {
-            res.status(404).json({ message: "Restaurant not found" });
-        }
+        res.json({
+            message: "Success",
+            results: {
+                name: details.name,
+                address: details.address,
+                rating: details.rating,
+                reviewsCount: details.reviewsCount,
+                reviews: details.reviews,
+                photos: details.photos,
+                summary: summary,
+            },
+        });
     } catch (error) {
-        console.error("Error fetching restaurant data:", error);
-        res.status(500).json({ message: "Internal server error" });
+        console.error("Error in /getRestaurant:", error.message);
+        res.status(400).json({ message: error.message });
     }
 });
-
 
 // Function to summarize reviews using OpenAI
 async function summarizeReviews(reviews) {
@@ -139,16 +82,16 @@ async function summarizeReviews(reviews) {
 
 // Autocomplete endpoint
 app.post('/autocomplete', async (req, res) => {
-    const { input, location } = req.body;
-
+    const { input, location, types } = req.body;
     if (!input || !location || !location.lat || !location.lng) {
         return res.status(400).json({ message: 'Invalid input or location data' });
     }
 
     const autocompleteUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
         input
-    )}&location=${location.lat},${location.lng}&radius=50000&key=${GOOGLE_API_KEY}`;
-
+    )}&location=${location.lat},${location.lng}&radius=50000&key=${GOOGLE_API_KEY}${
+        types ? `&types=${types}` : ''
+    }`;
     try {
         const response = await fetch(autocompleteUrl);
         const data = await response.json();
@@ -171,23 +114,13 @@ app.post('/autocomplete', async (req, res) => {
 app.post('/compare-restaurants', async (req, res) => {
     const { placeId1, placeId2 } = req.body;
 
-    if (!placeId1 || !placeId2) {
-        return res.status(400).json({ message: 'Both restaurant IDs are required for comparison.' });
-    }
-
     try {
-        // Fetch details for the first restaurant
-        const response1 = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId1}&fields=name,reviews&key=${GOOGLE_API_KEY}`);
-        const data1 = await response1.json();
-        const reviews1 = data1.result.reviews.map((review) => review.text).join("\n");
-
-        // Fetch details for the second restaurant
-        const response2 = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId2}&fields=name,reviews&key=${GOOGLE_API_KEY}`);
-        const data2 = await response2.json();
-        const reviews2 = data2.result.reviews.map((review) => review.text).join("\n");
+        // Fetch details for both restaurants
+        const details1 = await getRestaurantDetails(placeId1);
+        const details2 = await getRestaurantDetails(placeId2);
 
         // Combine reviews into one prompt
-        const combinedReviews = `Restaurant 1 (${data1.result.name}):\n${reviews1}\n\nRestaurant 2 (${data2.result.name}):\n${reviews2}`;
+        const combinedReviews = `Restaurant 1 (${details1.name}):\n${details1.reviews.map((r) => r.text).join("\n")}\n\nRestaurant 2 (${details2.name}):\n${details2.reviews.map((r) => r.text).join("\n")}`;
 
         // Call OpenAI API for comparison
         const response = await openai.chat.completions.create({
@@ -200,10 +133,11 @@ app.post('/compare-restaurants', async (req, res) => {
 
         res.json({ comparison: response.choices[0].message.content.trim() });
     } catch (error) {
-        console.error("Error comparing restaurants:", error);
-        res.status(500).json({ message: "Unable to compare restaurants at this time." });
+        console.error("Error in /compare-restaurants:", error.message);
+        res.status(400).json({ message: error.message });
     }
 });
+
 
 // Endpoint to handle "Analyze More"
 app.post('/analyze-more', async (req, res) => {
@@ -227,7 +161,7 @@ app.post('/analyze-more', async (req, res) => {
                 },
                 {
                     role: "user",
-                    content: `Here are some reviews for a restaurant. Please analyze them in greater detail, highlighting the most common themes, strengths, weaknesses, and any notable patterns. Keep it as plane text without any titles or bodling adn stuff because I am not formatting them in browser:
+                    content: `Here are some reviews for a restaurant. Please analyze them in greater detail, highlighting the most common themes, strengths, weaknesses, and any notable patterns. Keep it as plane text without any titles or bolding and stuff because I am not formatting them in browser:
                     \n\n${reviewTexts}`,
                 },
             ],
