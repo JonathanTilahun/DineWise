@@ -10,13 +10,14 @@ function GetRestaurantReview() {
   const [isAnalyzingMore, setIsAnalyzingMore] = useState(false); 
   const [recentSearches, setRecentSearches] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
 
-  function addRecentSearch(restaurantName) {
-    const saved = JSON.parse(localStorage.getItem('recentSearches')) || [];
-    const updated = [restaurantName, ...saved.filter(r => r !== restaurantName)];
-    const limited = updated.slice(0, 3);
-    localStorage.setItem('recentSearches', JSON.stringify(limited));
+  function addRecentSearch(restaurantName, placeId) {
+    // TODO: Change to database
+    const saved = JSON.parse(localStorage.getItem("recentSearches")) || [];
+    const updated = [{ name: restaurantName, place_id: placeId }, ...saved.filter(r => r.place_id !== placeId)];
+    const limited = updated.slice(0, 10);
+    localStorage.setItem("recentSearches", JSON.stringify(limited));
     setRecentSearches(limited);
   }
 
@@ -38,7 +39,7 @@ function GetRestaurantReview() {
       setErrorMessage("Geolocation is not supported by your browser.");
     }
 
-    const saved = JSON.parse(localStorage.getItem('recentSearches')) || [];
+    const saved = JSON.parse(localStorage.getItem("recentSearches")) || [];
     setRecentSearches(saved);
   }, []);
 
@@ -77,8 +78,7 @@ function GetRestaurantReview() {
       } else {
         setSuggestions([]);
       }
-    } catch (error) {
-      // console.error("Error fetching autocomplete suggestions:", error);
+    } catch {
       setSuggestions([]);
     }
   };
@@ -87,9 +87,9 @@ function GetRestaurantReview() {
     setSearchQuery(description);
     setSuggestions([]);
     setSelectedPlaceId(place_id);
-    addRecentSearch(description);
+    addRecentSearch(description, place_id);
     setShowDropdown(false);
-    setLoading(true)
+    setLoading(true);
 
     try {
       const response = await fetch("http://localhost:2000/getRestaurant", {
@@ -99,7 +99,7 @@ function GetRestaurantReview() {
       });
 
       const data = await response.json();
-      setLoading(false)
+      setLoading(false);
       if (response.ok) {
         setRestaurantData(data.results);
         setErrorMessage("");
@@ -110,6 +110,7 @@ function GetRestaurantReview() {
       }
     } catch (error) {
       console.error("Error fetching place details:", error);
+      setLoading(false);
       setErrorMessage("Unable to fetch data. Please try again.");
     }
   };
@@ -148,91 +149,98 @@ function GetRestaurantReview() {
     }
   };
 
+  const handleRecentSearchClick = (item) => {
+    handleSuggestionClick(item.name, item.place_id);
+  };
+
   return (
     <div className="container">
-      <h1 className="title">Get a Restaurant Review</h1>
-      <div className="search-container">
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={handleInputChange}
-          placeholder="Search for a restaurant..."
-          className="search-input"
-        />
-        {showDropdown && searchQuery.trim() !== "" && (recentSearches.length > 0 || suggestions.length > 0) && (
-          <ul className="suggestions">
-            {recentSearches.map((item, index) => (
-              <li
-                key={"recent-" + index}
-                className="suggestion-item"
-                onClick={() => {
-                  setSearchQuery(item);
-                  setSuggestions([]);
-                  addRecentSearch(item);
-                  setSelectedPlaceId(null);
-                  setShowDropdown(false);
-                }}
-              >
-                {item} (Recent)
-              </li>
-            ))}
-
-            {suggestions.map((suggestion, index) => (
-              <li
-                key={index}
-                onClick={() =>
-                  handleSuggestionClick(suggestion.description, suggestion.place_id)
-                }
-                className="suggestion-item"
-              >
-                {suggestion.description}
-              </li>
-            ))}
-          </ul>
-        )}
+      {/* Fixed-position sidebar on the far left */}
+      <div className="sidebar">
+        <h3>Recent Searches</h3>
+        <ul className="recent-searches">
+          {recentSearches.map((item, index) => (
+            <li
+              key={index}
+              className="recent-search-item"
+              onClick={() => handleRecentSearchClick(item)}
+            >
+              {item.name}
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {errorMessage && <p className="error">{errorMessage}</p>}
-
-      {loading && (
-        <div className="loading-indicator">
-          <div className="spinner"></div>
-        </div>
-      )}
-
-      {!loading && restaurantData && (
-        <div className="result-container">
-          <h2>{restaurantData.name}</h2>
-          <p>Address: {restaurantData.address}</p>
-          <p>Rating: {restaurantData.rating}</p>
-          <h3>Summary</h3>
-          <p>{restaurantData.summary}</p>
-
-          <button
-            onClick={handleAnalyzeMore}
-            className="analyze-more-btn"
-            disabled={isAnalyzingMore}
-          >
-            {isAnalyzingMore ? "Analyzing..." : "Analyze More"}
-          </button>
-
-          {restaurantData.photos && restaurantData.photos.length > 0 && (
-            <div className="photos-container">
-              {restaurantData.photos.map((photo, index) => (
-                <img
+      {/* Main content centered in the viewport */}
+      <div className="main-content">
+        <h1 className="title">Get a Restaurant Review</h1>
+        <div className="search-container">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={handleInputChange}
+            placeholder="Search for a restaurant..."
+            className="search-input"
+          />
+          {showDropdown && searchQuery.trim() !== "" && suggestions.length > 0 && (
+            <ul className="suggestions">
+              {suggestions.map((suggestion, index) => (
+                <li
                   key={index}
-                  src={photo.url}
-                  alt={`${restaurantData.name || "Restaurant"} Photo ${index + 1}`}
-                  className="restaurant-photo"
-                />
+                  onClick={() =>
+                    handleSuggestionClick(suggestion.description, suggestion.place_id)
+                  }
+                  className="suggestion-item"
+                >
+                  {suggestion.description}
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
-      )}
-      {!loading && !errorMessage && !restaurantData && (
-        <p className="instructions">Enter a search above to see details!</p>
-      )}
+
+        {errorMessage && <p className="error">{errorMessage}</p>}
+
+        {loading && (
+          <div className="loading-indicator">
+            <div className="spinner"></div>
+          </div>
+        )}
+
+        {!loading && restaurantData && (
+          <div className="result-container">
+            <h2>{restaurantData.name}</h2>
+            <p>Address: {restaurantData.address}</p>
+            <p>Rating: {restaurantData.rating}</p>
+            <h3>Summary</h3>
+            <p>{restaurantData.summary}</p>
+
+            <button
+              onClick={handleAnalyzeMore}
+              className="analyze-more-btn"
+              disabled={isAnalyzingMore}
+            >
+              {isAnalyzingMore ? "Analyzing..." : "Analyze More"}
+            </button>
+
+            {restaurantData.photos && restaurantData.photos.length > 0 && (
+              <div className="photos-container">
+                {restaurantData.photos.map((photo, index) => (
+                  <img
+                    key={index}
+                    src={photo.url}
+                    alt={`${restaurantData.name || "Restaurant"} Photo ${index + 1}`}
+                    className="restaurant-photo"
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {!loading && !errorMessage && !restaurantData && (
+          <p className="instructions">Enter a search above to see details!</p>
+        )}
+      </div>
     </div>
   );
 }

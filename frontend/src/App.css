@@ -249,6 +249,61 @@ input {
   z-index: 9999; /* Ensure it's on top */
 }
 
+.container {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  /* The container remains centered in the viewport */
+}
+
+/* Fixed sidebar on the far left */
+.sidebar {
+  position: fixed;
+  left: 10px;
+  top: 40px;
+  width: 250px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  padding: 10px;
+  text-align: left;
+  color: #f0f0f0;
+  box-shadow: 2px 2px 6px #000000;
+
+  /* Add these lines */
+  max-height: calc(100vh - 120px); /* Adjust based on your layout */
+  overflow-y: auto;
+}
+
+
+.sidebar h3 {
+  margin-top: 0;
+  text-shadow: 2px 2px 6px #000000;
+}
+
+.recent-searches {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recent-search-item {
+  padding: 10px;
+  border-bottom: 1px solid #555;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.recent-search-item:hover {
+  background-color: #444;
+}
+
+/* Main content stays centered */
+.main-content {
+  margin: 0 auto;
+  max-width: 600px;
+  padding-top: 50px; /* Some top padding so the sidebar looks aligned */
+  text-align: center;
+}
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
