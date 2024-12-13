@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 function CompareRestaurants() {
   const [searchQuery1, setSearchQuery1] = useState(""); 
@@ -17,7 +18,6 @@ function CompareRestaurants() {
   const [showDropdown2, setShowDropdown2] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Updated addRecentSearch to store objects like in GetRestaurantReview
   function addRecentSearch(restaurantName, placeId) {
     const saved = JSON.parse(localStorage.getItem("recentSearches")) || [];
     // Filter out duplicates by place_id
@@ -63,8 +63,8 @@ function CompareRestaurants() {
     }
 
     try {
-      const response = await fetch("http://localhost:2000/autocomplete", {
-        method: "POST",
+      const response = await fetch(`${API_BASE_URL}/getRestaurant`, { 
+      method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -90,7 +90,7 @@ function CompareRestaurants() {
 
   const fetchRestaurantDetails = async (placeId, setPhotos) => {
     try {
-      const response = await fetch("http://localhost:2000/getRestaurant", {
+      const response = await fetch(`${API_BASE_URL}/getRestaurant`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -119,7 +119,7 @@ function CompareRestaurants() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:2000/compare-restaurants", {
+      const response = await fetch(`${API_BASE_URL}/compare-restaurants`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

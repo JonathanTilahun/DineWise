@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 function GetRestaurantReview() {
   const [searchQuery, setSearchQuery] = useState(""); 
@@ -13,7 +14,6 @@ function GetRestaurantReview() {
   const [loading, setLoading] = useState(false);
 
   function addRecentSearch(restaurantName, placeId) {
-    // TODO: Change to database
     const saved = JSON.parse(localStorage.getItem("recentSearches")) || [];
     const updated = [{ name: restaurantName, place_id: placeId }, ...saved.filter(r => r.place_id !== placeId)];
     const limited = updated.slice(0, 10);
@@ -59,7 +59,7 @@ function GetRestaurantReview() {
     }
 
     try {
-      const response = await fetch("http://localhost:2000/autocomplete", {
+      const response = await fetch(`${API_BASE_URL}/autocomplete`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -92,8 +92,8 @@ function GetRestaurantReview() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:2000/getRestaurant", {
-        method: "POST",
+      const response = await fetch(`${API_BASE_URL}/getRestaurant`, {
+          method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ restaurant: place_id }),
       });
@@ -124,7 +124,7 @@ function GetRestaurantReview() {
     setIsAnalyzingMore(true);
 
     try {
-      const response = await fetch("http://localhost:2000/analyze-more", {
+      const response = await fetch(`${API_BASE_URL}/analyze-more`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reviews: restaurantData.reviews }),
@@ -171,7 +171,6 @@ function GetRestaurantReview() {
         </ul>
       </div>
 
-      {/* Main content centered in the viewport */}
       <div className="main-content">
         <h1 className="title">Get a Restaurant Review</h1>
         <div className="search-container">
